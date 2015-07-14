@@ -1,0 +1,38 @@
+{
+  "c1": {
+    "dual": 4, 
+    "value": 1
+  }, 
+  "c2": {
+    "dual": 1, 
+    "value": 2
+  }, 
+  "obj": {
+    "value": 7
+  }, 
+  "simple_LP": {}, 
+  "suffix defaults": {
+    "dual": [
+      0.0, 
+      null
+    ], 
+    "rc": [
+      0.0, 
+      null
+    ], 
+    "slack": [
+      0.0, 
+      null
+    ]
+  }, 
+  "x": {
+    "rc": 0, 
+    "stale": false, 
+    "value": 3
+  }, 
+  "y": {
+    "rc": 0, 
+    "stale": false, 
+    "value": 1
+  }
+}
