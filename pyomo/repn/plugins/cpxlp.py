@@ -27,7 +27,7 @@ from pyomo.core.base import \
      NumericLabeler, Constraint, SortComponents,
      Var, value,
      SOSConstraint, Objective,
-     ComponentMap, is_fixed)
+     ComponentMap)
 from pyomo.repn import (generate_canonical_repn,
                         canonical_degree,
                         LinearCanonicalRepn)
@@ -126,11 +126,13 @@ class ProblemWriter_cpxlp(AbstractProblemWriter):
         return output_filename, symbol_map
 
     def _get_bound(self, exp):
-        if exp is None:
-            return None
-        if is_fixed(exp):
-            return value(exp)
-        raise ValueError("non-fixed bound: " + str(exp))
+        """
+        TODO
+        """
+        if exp.is_fixed():
+            return exp()
+        else:
+            raise ValueError("ERROR: non-fixed bound: " + str(exp))
 
     def _print_expr_canonical(self,
                               x,
@@ -173,8 +175,7 @@ class ProblemWriter_cpxlp(AbstractProblemWriter):
                                 for i in xrange(0,len(x.linear))]
                 sorted_names.sort()
             else:
-                sorted_names = [(x.variables[i], x.linear[i])
-                                for i in xrange(0,len(x.linear))]
+                sorted_names = [(x.variables[i], x.linear[i]) for i in xrange(0,len(x.linear))]
                 sorted_names.sort(key=lambda _x: column_order[_x[0]])
                 sorted_names = [(variable_symbol_dictionary[id(var)], coef)
                                 for var, coef in sorted_names]
@@ -386,7 +387,7 @@ class ProblemWriter_cpxlp(AbstractProblemWriter):
                                        constraint_data,
                                        labeler)
 
-                if constraint_data.equality:
+                if constraint_data._equality:
                     label = 'c_e_' + constraint_data_symbol + '_'
                     alias_symbol_func(symbol_map,
                                       constraint_data,
@@ -600,14 +601,11 @@ class ProblemWriter_cpxlp(AbstractProblemWriter):
 
             for constraint_data in block_constraints:
 
-                if isinstance(constraint_data, LinearCanonicalRepn):
-                    canonical_repn = constraint_data
+                if gen_con_canonical_repn:
+                    canonical_repn = generate_canonical_repn(constraint_data.body)
+                    block_canonical_repn[constraint_data] = canonical_repn
                 else:
-                    if gen_con_canonical_repn:
-                        canonical_repn = generate_canonical_repn(constraint_data.body)
-                        block_canonical_repn[constraint_data] = canonical_repn
-                    else:
-                        canonical_repn = block_canonical_repn[constraint_data]
+                    canonical_repn = block_canonical_repn[constraint_data]
 
                 degree = canonical_degree(canonical_repn)
 
@@ -640,7 +638,7 @@ class ProblemWriter_cpxlp(AbstractProblemWriter):
                     raise ValueError(msg)
 
                 con_symbol = object_symbol_dictionary[id(constraint_data)]
-                if constraint_data.equality:
+                if constraint_data._equality:
                     label = 'c_e_' + con_symbol + '_'
                     output_file.write(label+':\n')
                     offset = print_expr_canonical(canonical_repn,

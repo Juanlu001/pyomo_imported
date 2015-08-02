@@ -47,4 +47,5 @@ def fix_ef_first_stage_variables(ph, scenario_tree, expected_value_instance):
                 if 1 == 1:
                     print("variable_name= %s\n" % variable_name)
                     fix_value = getattr(expected_value_instance, variable_name)[index].value
-                    getattr(inst, variable_name)[index].fix(fix_value)
+                    getattr(inst, variable_name)[index].fixed = True
+                    getattr(inst, variable_name)[index].value = fix_value

@@ -27,16 +27,12 @@ from pyomo.repn.compute_ampl_repn import preprocess_block_objectives \
     as ampl_preprocess_block_objectives
 from pyomo.repn.compute_ampl_repn import preprocess_block_constraints \
     as ampl_preprocess_block_constraints
-from pyomo.repn.compute_ampl_repn import preprocess_constraint \
-    as ampl_preprocess_constraint
 
 from six import iteritems, itervalues
 from six.moves import xrange
 
 canonical_expression_preprocessor = \
     pyomo.util.PyomoAPIFactory("pyomo.repn.compute_canonical_repn")
-ampl_expression_preprocessor = \
-    pyomo.util.PyomoAPIFactory("pyomo.repn.compute_ampl_repn")
 
 _OLD_OUTPUT = True
 
@@ -657,8 +653,7 @@ def preprocess_scenario_instance(scenario_instance,
         if solver.problem_format() == ProblemFormat.nl:
             ampl_preprocess_block_objectives(scenario_instance)
         else:
-
-            canonical_preprocess_block_objectives(scenario_instance)
+            canonical_preprocess_block_objectives(scenario_instance, None)
 
         if persistent_solver_in_use and solver.instance_compiled():
             solver.compile_objective(scenario_instance)
@@ -667,7 +662,9 @@ def preprocess_scenario_instance(scenario_instance,
        (preprocess_fixed_variables):
 
         if solver.problem_format() == ProblemFormat.nl:
-            ampl_expression_preprocessor({}, model=scenario_instance)
+            ampl_preprocess_block_objectives(scenario_instance)
+            for block in scenario_instance.block_data_objects(active=True):
+                ampl_preprocess_block_constraints(block)
         else:
             canonical_expression_preprocessor({}, model=scenario_instance)
 
@@ -689,33 +686,25 @@ def preprocess_scenario_instance(scenario_instance,
 
     if instance_user_constraints_modified:
         if solver.problem_format() == ProblemFormat.nl:
-            idMap = {}
-            ampl_preprocess_block_constraints(scenario_instance,
-                                              idMap=idMap,
-                                              descend_into=True)
+            for block in scenario_instance.block_data_objects(active=True):
+                ampl_preprocess_block_constraints(block)
         else:
-            idMap = {}
-            canonical_preprocess_block_constraints(scenario_instance,
-                                                   idMap=idMap,
-                                                   descend_into=True)
+            var_id_map = {}
+            for block in scenario_instance.block_data_objects(active=True):
+                canonical_preprocess_block_constraints(block, var_id_map)
 
     elif instance_ph_constraints_modified:
 
         # only pre-process the piecewise constraints
         if solver.problem_format() == ProblemFormat.nl:
-            idMap = {}
-            for constraint_name in instance_ph_constraints:
-                ampl_preprocess_constraint(
-                    scenario_instance,
-                    getattr(scenario_instance, constraint_name),
-                    idMap=idMap)
+            ampl_preprocess_block_constraints(scenario_instance)
         else:
-            idMap = {}
+            var_id_map = {}
             for constraint_name in instance_ph_constraints:
                 canonical_preprocess_constraint(
                     scenario_instance,
                     getattr(scenario_instance, constraint_name),
-                    idMap=idMap)
+                    var_id_map=var_id_map)
 
 #
 # Extracts an active objective from the instance (top-level only).

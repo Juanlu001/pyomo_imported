@@ -579,7 +579,7 @@ class ConnectorExpander(Plugin):
                 c = _substitute_var(constraint.body.clone(), var)
             else:
                 c = _substitute_var(constraint.body, var)
-            if constraint.equality:
+            if constraint._equality:
                 cList.append( ( c, constraint.upper ) )
             else:
                 cList.append( ( constraint.lower, c, constraint.upper ) )

@@ -355,8 +355,7 @@ class ComponentData(object):
         _component      A weakref to the component that owns this data object
     """
 
-    __pickle_slots__ = ('_component',)
-    __slots__ = __pickle_slots__ + ('__weakref__',)
+    __slots__ = ( '_component', )
 
     def __init__(self, owner):
         #

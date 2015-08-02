@@ -38,7 +38,7 @@ class LogBuffer(object):
         else:
             self.old_level = self.logger.getEffectiveLevel()
             self.logger.setLevel(logLevel)
-
+            
         self.logHandler = logging.StreamHandler(self.buffer)
         self.logger.addHandler(self.logHandler)
 
@@ -81,8 +81,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return (0.0, model.x)
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         True)
+        
+        self.assertEqual(model.c._equality,         True)
         self.assertEqual(model.c.lower,             0)
         self.assertIs   (model.c.body,              model.x)
         self.assertEqual(model.c.upper,             0)
@@ -90,8 +90,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return (model.x, 0.0)
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         True)
+        
+        self.assertEqual(model.c._equality,         True)
         self.assertEqual(model.c.lower,             0)
         self.assertIs   (model.c.body,              model.x)
         self.assertEqual(model.c.upper,             0)
@@ -114,8 +114,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return (None, model.y, 1)
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             1)
@@ -123,8 +123,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return (0, model.y, None)
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             0)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -134,8 +134,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return (float('-inf'), model.y, 1)
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             1)
@@ -143,8 +143,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return (0, model.y, float('inf'))
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             0)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -154,8 +154,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return (None, model.y, None)
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -163,8 +163,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return (float('-inf'), model.y, float('inf'))
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -187,8 +187,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return (0, model.y, 1)
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             0)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             1)
@@ -212,8 +212,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return 0.0 == model.x
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         True)
+        
+        self.assertEqual(model.c._equality,         True)
         self.assertEqual(model.c.lower,             0)
         self.assertIs   (model.c.body,              model.x)
         self.assertEqual(model.c.upper,             0)
@@ -221,8 +221,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return model.x == 0.0
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         True)
+        
+        self.assertEqual(model.c._equality,         True)
         self.assertEqual(model.c.lower,             0)
         self.assertIs   (model.c.body,              model.x)
         self.assertEqual(model.c.upper,             0)
@@ -245,8 +245,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return model.y <= 1
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             1)
@@ -254,8 +254,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return 0 <= model.y
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             0)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -263,8 +263,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return model.y >= 1
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             1)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -272,8 +272,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return 0 >= model.y
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             0)
@@ -283,8 +283,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return model.y <= float('inf')
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -292,8 +292,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return float('-inf') <= model.y
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -301,8 +301,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return model.y >= float('-inf')
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -310,8 +310,8 @@ class TestConstraintCreation(unittest.TestCase):
         def rule(model):
             return float('inf') >= model.y
         model.c = Constraint(rule=rule)
-
-        self.assertEqual(model.c.equality,         False)
+        
+        self.assertEqual(model.c._equality,         False)
         self.assertEqual(model.c.lower,             None)
         self.assertIs   (model.c.body,              model.y)
         self.assertEqual(model.c.upper,             None)
@@ -351,7 +351,7 @@ class TestSimpleCon(unittest.TestCase):
         ans = ans >= 0
         ans = ans <= 1
         model.c = Constraint(expr=ans)
-
+        
         self.assertEqual(model.c(), 8)
         self.assertEqual(model.c.body(), 8)
         self.assertEqual(value(model.c.body), 8)
@@ -363,7 +363,7 @@ class TestSimpleCon(unittest.TestCase):
         ans = model.x >= 0
         ans = ans <= 1
         model.c = Constraint(expr=ans)
-
+        
         self.assertEqual(model.c(), 2)
         self.assertEqual(model.c.body(), 2)
         self.assertEqual(value(model.c.body), 2)
@@ -375,7 +375,7 @@ class TestSimpleCon(unittest.TestCase):
         ans = model.x >= 0
         ans = ans <= 1
         model.c = Constraint(expr=ans)
-
+        
         #self.assertRaises(ValueError, model.c)
         self.assertEqual(model.c(),None)
         model.x = 2
@@ -388,7 +388,7 @@ class TestSimpleCon(unittest.TestCase):
         model.A = RangeSet(1,4)
         model.x = Var(model.A,initialize=2)
         model.c = Constraint(expr=0 <= sum(model.x[i] for i in model.A) <= 1)
-
+        
         self.assertEqual(model.c(), 8)
         self.assertEqual(value(model.c.body), 8)
 
@@ -404,7 +404,7 @@ class TestSimpleCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(rule=f)
-
+        
         self.assertEqual(model.c(), 8)
         self.assertEqual(value(model.c.body), 8)
 
@@ -418,7 +418,7 @@ class TestSimpleCon(unittest.TestCase):
             return (0,ans,1)
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(rule=f)
-
+        
         self.assertEqual(model.c(), 8)
         self.assertEqual(value(model.c.body), 8)
 
@@ -432,7 +432,7 @@ class TestSimpleCon(unittest.TestCase):
             return (0,ans,None)
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(rule=f)
-
+        
         self.assertEqual(model.c(), 8)
         self.assertEqual(value(model.c.body), 8)
 
@@ -446,7 +446,7 @@ class TestSimpleCon(unittest.TestCase):
             return (None,ans,1)
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(rule=f)
-
+        
         self.assertEqual(model.c(), 8)
         self.assertEqual(value(model.c.body), 8)
 
@@ -460,7 +460,7 @@ class TestSimpleCon(unittest.TestCase):
             return (ans,1)
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(rule=f)
-
+        
         self.assertEqual(model.c(), 8)
         self.assertEqual(value(model.c.body), 8)
 
@@ -468,28 +468,29 @@ class TestSimpleCon(unittest.TestCase):
         """Test dim method"""
         model = ConcreteModel()
         model.c = Constraint(noruleinit=True)
-
+        
         self.assertEqual(model.c.dim(),0)
 
     def test_keys_noruleinit(self):
         """Test keys method"""
         model = ConcreteModel()
         model.c = Constraint(noruleinit=True)
-
+        
         self.assertEqual(list(model.c.keys()),[])
 
     def test_len_noruleinit(self):
         """Test len method"""
         model = ConcreteModel()
         model.c = Constraint(noruleinit=True)
-
-        self.assertEqual(len(model.c), 0)
+        
+        self.assertEqual(len(model.c),0)
 
     def test_None_key(self):
         """Test keys method"""
         model = ConcreteModel()
         model.x = Var()
         model.c = Constraint(expr=model.x == 1)
+        
         self.assertEqual(list(model.c.keys()),[None])
         self.assertEqual(id(model.c),id(model.c[None]))
 
@@ -498,9 +499,11 @@ class TestSimpleCon(unittest.TestCase):
         model = AbstractModel()
         model.x = Var()
         model.c = Constraint(rule=lambda m: m.x == 1)
+        
         self.assertEqual(len(model.c),0)
         inst = model.create_instance()
         self.assertEqual(len(inst.c),1)
+
 
 class TestArrayCon(unittest.TestCase):
 
@@ -522,7 +525,7 @@ class TestArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(model.A,rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(model.c[2](), 16)
         self.assertEqual(len(model.c), 4)
@@ -541,7 +544,7 @@ class TestArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(model.A,rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(model.c[2](), 16)
         self.assertEqual(len(model.c), 4)
@@ -561,7 +564,7 @@ class TestArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(model.A,rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(len(model.c), 2)
 
@@ -580,7 +583,7 @@ class TestArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(model.A,rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(len(model.c), 2)
 
@@ -600,7 +603,7 @@ class TestArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(model.A,rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(len(model.c), 2)
 
@@ -620,7 +623,7 @@ class TestArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(model.A,rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(len(model.c), 2)
 
@@ -628,21 +631,21 @@ class TestArrayCon(unittest.TestCase):
         """Test dim method"""
         model = self.create_model()
         model.c = Constraint(model.A, noruleinit=True)
-
+        
         self.assertEqual(model.c.dim(),1)
 
     def test_keys(self):
         """Test keys method"""
         model = self.create_model()
         model.c = Constraint(model.A, noruleinit=True)
-
+        
         self.assertEqual(len(model.c.keys()),0)
 
     def test_len(self):
         """Test len method"""
         model = self.create_model()
         model.c = Constraint(model.A, noruleinit=True)
-
+        
         self.assertEqual(len(model.c),0)
         """Test rule option"""
         def f(model):
@@ -653,7 +656,7 @@ class TestArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(rule=f)
-
+        
         self.assertEqual(len(model.c),1)
 
 
@@ -663,24 +666,6 @@ class TestConList(unittest.TestCase):
         model = ConcreteModel()
         model.A = Set(initialize=[1,2,3,4])
         return model
-
-    #
-    # Tests that adding Constraint.Skip increments
-    # the internal counter but does not create an object
-    #
-    def test_conlist_skip(self):
-        model = ConcreteModel()
-        model.x = Var()
-        model.c = ConstraintList(noruleinit=True)
-        self.assertTrue(1 not in model.c)
-        self.assertEqual(len(model.c), 0)
-        model.c.add(Constraint.Skip)
-        self.assertTrue(1 not in model.c)
-        self.assertEqual(len(model.c), 0)
-        model.c.add(model.x >= 1)
-        self.assertTrue(1 not in model.c)
-        self.assertTrue(2 in model.c)
-        self.assertEqual(len(model.c), 1)
 
     def test_rule_option1(self):
         """Test rule option"""
@@ -697,7 +682,7 @@ class TestConList(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = ConstraintList(rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(model.c[2](), 16)
         self.assertEqual(len(model.c), 4)
@@ -718,7 +703,7 @@ class TestConList(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = ConstraintList(rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(len(model.c), 2)
 
@@ -738,7 +723,7 @@ class TestConList(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = ConstraintList(rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(model.c[2](), 16)
         self.assertEqual(len(model.c), 4)
@@ -760,7 +745,7 @@ class TestConList(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = ConstraintList(rule=f)
-
+        
         self.assertEqual(model.c[1](), 8)
         self.assertEqual(len(model.c), 2)
 
@@ -792,21 +777,21 @@ class TestConList(unittest.TestCase):
         """Test dim method"""
         model = self.create_model()
         model.c = ConstraintList(noruleinit=True)
-
+        
         self.assertEqual(model.c.dim(),1)
 
     def test_keys(self):
         """Test keys method"""
         model = self.create_model()
         model.c = ConstraintList(noruleinit=True)
-
+        
         self.assertEqual(len(model.c.keys()),0)
 
     def test_len(self):
         """Test len method"""
         model = self.create_model()
         model.c = ConstraintList(noruleinit=True)
-
+        
         self.assertEqual(len(model.c),0)
 
 
@@ -830,7 +815,7 @@ class Test2DArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(model.A,model.A,rule=f)
-
+        
         self.assertEqual(model.c[1,1](), 8)
         self.assertEqual(model.c[2,1](), 16)
 
@@ -848,7 +833,7 @@ class Test2DArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(model.A,model.A,rule=f)
-
+        
         self.assertEqual(model.c[1,1](), 8)
         self.assertEqual(model.c[2,1](), 16)
 
@@ -856,21 +841,21 @@ class Test2DArrayCon(unittest.TestCase):
         """Test dim method"""
         model = self.create_model()
         model.c = Constraint(model.A,model.A, noruleinit=True)
-
+        
         self.assertEqual(model.c.dim(),2)
 
     def test_keys(self):
         """Test keys method"""
         model = self.create_model()
         model.c = Constraint(model.A,model.A, noruleinit=True)
-
+        
         self.assertEqual(len(model.c.keys()),0)
 
     def test_len(self):
         """Test len method"""
         model = self.create_model()
         model.c = Constraint(model.A,model.A, noruleinit=True)
-
+        
         self.assertEqual(len(model.c),0)
         """Test rule option"""
         def f(model):
@@ -881,7 +866,7 @@ class Test2DArrayCon(unittest.TestCase):
             return ans
         model.x = Var(RangeSet(1,4),initialize=2)
         model.c = Constraint(rule=f)
-
+        
         self.assertEqual(len(model.c),1)
 
 class MiscConTests(unittest.TestCase):
@@ -914,123 +899,22 @@ class MiscConTests(unittest.TestCase):
         model=ConcreteModel()
         model.a=Set(initialize=[1,2,3])
         model.b=Constraint(model.a)
-
+        
         self.assertEqual(2 in model.b,False)
         tmp=[]
         for i in model.b:
             tmp.append(i)
         self.assertEqual(len(tmp),0)
 
-    def test_empty_singleton(self):
+    def test_set_get(self):
         a = Constraint(noruleinit=True)
         a.construct()
-        #
-        # Even though we construct a SimpleConstraint,
-        # if it is not initialized that means it is "empty"
-        # and we should encounter errors when trying to access the
-        # _ConstraintData interface methods until we assign
-        # something to the constraint.
-        #
-        self.assertEqual(a._constructed, True)
-        self.assertEqual(len(a), 0)
-        try:
-            a()
-            self.fail("Component is empty")
-        except ValueError:
-            pass
-        try:
-            a.body
-            self.fail("Component is empty")
-        except ValueError:
-            pass
-        try:
-            a.lower
-            self.fail("Component is empty")
-        except ValueError:
-            pass
-        try:
-            a.upper
-            self.fail("Component is empty")
-        except ValueError:
-            pass
-        try:
-            a.equality
-            self.fail("Component is empty")
-        except ValueError:
-            pass
-        try:
-            a.strict_lower
-            self.fail("Component is empty")
-        except ValueError:
-            pass
-        try:
-            a.strict_upper
-            self.fail("Component is empty")
-        except ValueError:
-            pass
-        x = Var(initialize=1.0)
-        x.construct()
-        a.set_value(2 >= x >= 0)
-        self.assertEqual(len(a), 1)
-        self.assertEqual(a(), 1)
-        self.assertEqual(a.body(), 1)
-        self.assertEqual(a.lower(), 0)
-        self.assertEqual(a.upper(), 2)
-        self.assertEqual(a.equality, False)
-        self.assertEqual(a.strict_lower, False)
-        self.assertEqual(a.strict_upper, False)
-
-    def test_unconstructed_singleton(self):
-        a = Constraint(noruleinit=True)
-        self.assertEqual(a._constructed, False)
-        self.assertEqual(len(a), 0)
-        try:
-            a()
-            self.fail("Component is unconstructed")
-        except ValueError:
-            pass
-        try:
-            a.body
-            self.fail("Component is unconstructed")
-        except ValueError:
-            pass
-        try:
-            a.lower
-            self.fail("Component is unconstructed")
-        except ValueError:
-            pass
-        try:
-            a.upper
-            self.fail("Component is unconstructed")
-        except ValueError:
-            pass
-        try:
-            a.equality
-            self.fail("Component is unconstructed")
-        except ValueError:
-            pass
-        try:
-            a.strict_lower
-            self.fail("Component is unconstructed")
-        except ValueError:
-            pass
-        try:
-            a.strict_upper
-            self.fail("Component is unconstructed")
-        except ValueError:
-            pass
-        x = Var(initialize=1.0)
-        x.construct()
-        a.construct()
-        a.set_value(2 >= x >= 0)
-        self.assertEqual(len(a), 1)
-        self.assertEqual(a(), 1)
-        self.assertEqual(a.body(), 1)
-        self.assertEqual(a.lower(), 0)
-        self.assertEqual(a.upper(), 2)
-        self.assertEqual(a.equality, False)
-        self.assertEqual(a.strict_lower, False)
-        self.assertEqual(a.strict_upper, False)
+        #try:
+            #a.value = 1
+            #self.fail("Can't set value attribute")
+        #except AttributeError:
+            #pass
+        self.assertEqual(a(),None)
 
     def test_rule(self):
         def rule1(model):
@@ -1047,7 +931,7 @@ class MiscConTests(unittest.TestCase):
         model = ConcreteModel()
         model.x = Var(initialize=1.1)
         model.o = Constraint(rule=rule1)
-
+        
         model.reset()
         self.assertEqual(model.o(),1.1)
         #
@@ -1079,7 +963,7 @@ class MiscConTests(unittest.TestCase):
         model.y = Var()
         model.z = Var()
         model.o = Constraint(rule=rule1)
-
+        
         #
         def rule1(model):
             return (model.y,model.x,model.z)
@@ -1113,7 +997,7 @@ class MiscConTests(unittest.TestCase):
         model.L = Param(initialize=0)
         model.U = Param(initialize=1)
         model.o = Constraint(rule=rule1)
-
+        
         #
         def rule1(model):
             expr = model.x <= model.z
@@ -1154,7 +1038,7 @@ class MiscConTests(unittest.TestCase):
         model.x = Var()
         model.L = Param(initialize=0)
         model.o = Constraint(rule=rule1)
-
+        
         #
         def rule1(model):
             expr = model.U >= model.x
@@ -1163,6 +1047,7 @@ class MiscConTests(unittest.TestCase):
         model.x = Var()
         model.U = Param(initialize=0)
         model.o = Constraint(rule=rule1)
+        
 
         #
         def rule1(model):
@@ -1186,7 +1071,7 @@ class MiscConTests(unittest.TestCase):
         model.L = Param(initialize=0)
         model.U = Param(initialize=1)
         model.o = Constraint(rule=rule1)
-
+        
         #
         def rule1(model):
             expr = model.x >= model.z
@@ -1227,7 +1112,7 @@ class MiscConTests(unittest.TestCase):
         model.x = Var()
         model.L = Param(initialize=0)
         model.o = Constraint(rule=rule1)
-
+        
         #
         def rule1(model):
             expr = model.U <= model.x
@@ -1236,6 +1121,7 @@ class MiscConTests(unittest.TestCase):
         model.x = Var()
         model.U = Param(initialize=0)
         model.o = Constraint(rule=rule1)
+        
 
         #
         def rule1(model):

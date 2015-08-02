@@ -16,67 +16,12 @@ import textwrap
 import logging
 
 import pyutilib.subprocess
-from pyutilib.misc import Options
 
 from pyomo.util import get_pyomo_commands
 import pyomo.scripting.pyomo_parser
 
 logger = logging.getLogger('pyomo.solvers')
 
-
-#--------------------------------------------------
-# info
-#   -v
-#--------------------------------------------------
-
-def setup_info_parser(parser):
-    #parser.add_argument("-v", dest="verbose", action='store_true', default=False,
-    #                    help="Provide verbose information about this Pyomo installation.")
-    pass
-
-def info_exec(options):
-    cmddir = os.path.dirname(os.path.abspath(sys.executable))+os.sep
-    info = Options()
-    #
-    info.python = Options()
-    info.python.version = '%d.%d.%d' % sys.version_info[:3]
-    info.python.executable = sys.executable
-    info.python.platform = sys.platform
-    try:
-        packages = []
-        import pip
-        for package in pip.get_installed_distributions():
-            packages.append( Options(name=package.project_name, version=package.version) )
-        info.python.packages = packages
-    except:
-        pass
-    #
-    info.environment = Options()
-    path = os.environ.get('PATH', None)
-    if not path is None:
-        info.environment['shell path'] = path.split(os.pathsep)
-    info.environment['python path'] = sys.path
-    #
-    print('')
-    print('Pyomo Information')
-    print('-'*70)
-    print(str(info))
-
-#
-# Add a subparser for the pyomo info
-#
-setup_info_parser(
-    pyomo.scripting.pyomo_parser.add_subparser('info',
-        func=info_exec,
-        help='Print information about installed packages that support Pyomo.',
-        description='This pyomo subcommand is used to print information about the installed packages that support Pyomo.',
-        ))
-
-
-#--------------------------------------------------
-# run
-#   --list
-#--------------------------------------------------
 
 def setup_command_parser(parser):
     parser.add_argument("--list", dest="summary", action='store_true', default=False,
@@ -290,9 +235,7 @@ def help_solvers():
         logger.setLevel(logging.ERROR)
         # Create a solver, and see if it is available
         with pyomo.opt.SolverFactory(s) as opt:
-            if s == 'py' or opt._metasolver:
-                format = '    %-'+str(n)+'s   + %s'
-            elif opt.available(False):
+            if s == 'asl' or s == 'py' or opt.available(False):
                 format = '    %-'+str(n)+'s   * %s'
             else:
                 format = '    %-'+str(n)+'s     %s'
@@ -301,7 +244,7 @@ def help_solvers():
             print(wrapper.fill(format % (s , pyomo.opt.SolverFactory.doc(s))))
     print("")
     wrapper = textwrap.TextWrapper(subsequent_indent='')
-    print(wrapper.fill("An asterisk indicates solvers that are currently available to be run from Pyomo with the serial solver manager. A plus indicates meta-solvers, that are always available."))
+    print(wrapper.fill("An asterisk indicates that this solver is currently available to be run from Pyomo with the serial solver manager."))
     print('')
     print(wrapper.fill('Several solver interfaces are wrappers around third-party solver interfaces:  asl, openopt and os.  These interfaces require a subsolver specification that indicates the solver being executed.  For example, the following indicates that the OpenOpt pswarm solver is being used:'))
     print('')

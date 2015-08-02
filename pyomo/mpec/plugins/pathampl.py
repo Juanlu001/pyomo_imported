@@ -34,7 +34,6 @@ class PATHAMPL(ASL):
         #
         kwds["type"] = "path"
         ASL.__init__(self, **kwds)
-        self._metasolver = False
         #
         # Define solver capabilities, which default to 'None'
         #

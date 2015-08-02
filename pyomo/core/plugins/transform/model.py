@@ -110,7 +110,7 @@ def to_standard_form(self):
                         generate_canonical_repn(con.body, var_id_map))
 
                     # Process the bounds of the constraint
-                    if con.equality:
+                    if con._equality:
                         # Equality constraint, only check lower bound
                         lb = self._process_canonical_repn(
                             generate_canonical_repn(con.lower, var_id_map))

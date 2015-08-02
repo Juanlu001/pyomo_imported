@@ -440,8 +440,8 @@ def _generate_ampl_repn(exp):
         #
         # Expression (the component)
         #
-        elif isinstance(exp, _ExpressionData):
-            ampl_repn = _generate_ampl_repn(exp.expr)
+        elif type(exp) is _ExpressionData or exp.type() is Expression:
+            ampl_repn = _generate_ampl_repn(exp.value)
             return ampl_repn
         #
         # ERROR
@@ -476,9 +476,7 @@ def _generate_ampl_repn(exp):
     else:
         raise ValueError("Unexpected expression type: "+str(exp))
 
-def generate_ampl_repn(exp, idMap=None):
-    if idMap is None:
-        idMap = {}
+def generate_ampl_repn(exp):
     degree = exp.polynomial_degree()
     if (degree is None) or (degree > 1):
         repn = _generate_ampl_repn(exp)
@@ -496,7 +494,7 @@ def generate_ampl_repn(exp, idMap=None):
         repn._linear_vars = tuple()
         repn._linear_terms_coef = tuple()
         repn._nonlinear_vars = tuple()
-        coef, varmap = collect_linear_canonical_repn(exp, idMap=idMap)
+        coef, varmap = collect_linear_canonical_repn(exp, {})
         if None in coef:
             val = coef.pop(None)
             if val:

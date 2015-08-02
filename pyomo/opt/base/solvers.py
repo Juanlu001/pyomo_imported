@@ -218,14 +218,6 @@ def load_solvers(*args):
         ans[name] = opt
     return ans
 
-def _raise_ephemeral_error(name, keyword=""):
-    raise AttributeError(
-        "The property '%s' can no longer be set directly on "
-        "the solver object. It should instead be passed as a "
-        "keyword into the solve method%s. It will automatically "
-        "be reset to its default value after each invocation of "
-        "solve." % (name, keyword))
-
 
 class OptSolver(Plugin):
     """A generic optimization solver"""
@@ -238,59 +230,36 @@ class OptSolver(Plugin):
     #
     @property
     def tee(self):
-        _raise_ephemeral_error('tee')
-    @tee.setter
-    def tee(self, val):
-        _raise_ephemeral_error('tee')
-
+        raise AttributeError("'tee' is private attribute and it should only be "
+                             "set using a keyword in the solve() method")
     @property
     def suffixes(self):
-        _raise_ephemeral_error('suffixes')
-    @suffixes.setter
-    def suffixes(self, val):
-        _raise_ephemeral_error('suffixes')
-
+        raise AttributeError("'suffixes' is private attribute and it should only be "
+                             "set using a keyword in the solve() method")
     @property
     def keepfiles(self):
-        _raise_ephemeral_error('keepfiles')
-    @keepfiles.setter
-    def keepfiles(self, val):
-        _raise_ephemeral_error('keepfiles')
-
+        raise AttributeError("'keepfiles' is private attribute and it should only be "
+                             "set using a keyword in the solve() method")
     @property
     def soln_file(self):
-        _raise_ephemeral_error('soln_file')
-    @soln_file.setter
-    def soln_file(self, val):
-        _raise_ephemeral_error('soln_file')
-
+        raise AttributeError("'soln_file' is private attribute and it should only be "
+                             "set using a keyword in the solve() method")
     @property
     def log_file(self):
-        _raise_ephemeral_error('log_file')
-    @log_file.setter
-    def log_file(self, val):
-        _raise_ephemeral_error('log_file')
-
+        raise AttributeError("'log_file' is private attribute and it should only be "
+                             "set using a keyword in the solve() method")
     @property
     def symbolic_solver_labels(self):
-        _raise_ephemeral_error('symbolic_solver_labels')
-    @symbolic_solver_labels.setter
-    def symbolic_solver_labels(self, val):
-        _raise_ephemeral_error('symbolic_solver_labels')
-
+        raise AttributeError("'symbolic_solver_labels' is private attribute and it should only be "
+                             "set using a keyword in the solve() method")
     @property
     def warm_start_solve(self):
-        _raise_ephemeral_error('warm_start_solve', keyword=" (warmstart)")
-    @warm_start_solve.setter
-    def warm_start_solve(self, val):
-        _raise_ephemeral_error('warm_start_solve', keyword=" (warmstart)")
-
+        raise AttributeError("'warm_start_solve' is private attribute and it should only be "
+                             "set using a keyword (warmstart) in the solve() method")
     @property
     def warm_start_file_name(self):
-        _raise_ephemeral_error('warm_start_file_name', keyword=" (warmstart_file)")
-    @warm_start_file_name.setter
-    def warm_start_file_name(self, val):
-        _raise_ephemeral_error('warm_start_file_name', keyword=" (warmstart_file)")
+        raise AttributeError("'warm_start_file_name' is private attribute and it should only be "
+                             "set using a keyword (warmstart_file) in the solve() method")
 
     def __init__(self, **kwds):
         """ Constructor """
@@ -321,6 +290,7 @@ class OptSolver(Plugin):
                 self._doc = "%s OptSolver" % self.name
             else:
                 self._doc = "%s OptSolver (type %s)" % (self.name,self.type)
+
         #
         # Options are persistent, meaning users must modify the
         # options dict directly rather than pass them into _presolve
@@ -361,11 +331,6 @@ class OptSolver(Plugin):
         self._results_reader = None
         self._problem = None
         self._problem_files = None
-
-        #
-        # Used to document meta solvers
-        #
-        self._metasolver = False
 
         self._version = None
         #
@@ -488,93 +453,59 @@ class OptSolver(Plugin):
                         if name not in kwds_suffixes:
                             kwds_suffixes.append(name)
 
-        #
-        # Handle ephemeral solvers options here. These
-        # will override whatever is currently in the options
-        # dictionary, but we will reset these options to
-        # their original value at the end of this method.
-        #
-        tmp_solver_options = kwds.pop('solver_options', None)
-        options_to_reset = {}
-        options_to_delete = []
-        if tmp_solver_options is not None:
-            for key in tmp_solver_options:
-                if key in self.options:
-                    options_to_reset[key] = self.options[key]
-                else:
-                    options_to_delete.append(key)
-            # only modify the options dict after the above loop
-            # completes, so that we only detect the original state
-            for key in tmp_solver_options:
-                self.options[key] = tmp_solver_options[key]
+        # we're good to go.
+        initial_time = time.time()
 
-        try:
+        self._presolve(*args, **kwds)
 
-            # we're good to go.
-            initial_time = time.time()
+        presolve_completion_time = time.time()
 
-            self._presolve(*args, **kwds)
+        if not _model is None:
+            self._initialize_callbacks(_model)
 
-            presolve_completion_time = time.time()
-
-            if not _model is None:
-                self._initialize_callbacks(_model)
-
-            _status = self._apply_solver()
-            if hasattr(self, '_transformation_data'):
-                del self._transformation_data
-            if not hasattr(_status, 'rc'):
-                logger.warning(
-                    "Solver (%s) did not return a solver status code.\n"
-                    "This is indicative of an internal solver plugin error.\n"
-                    "Please report this to the Pyomo developers." )
-            elif _status.rc:
+        _status = self._apply_solver()
+        if hasattr(self, '_transformation_data'):
+            del self._transformation_data
+        if not hasattr(_status, 'rc'):
+            logger.warning(
+                "Solver (%s) did not return a solver status code.\n"
+                "This is indicative of an internal solver plugin error.\n"
+                "Please report this to the Pyomo developers." )
+        elif _status.rc:
+            logger.error(
+                "Solver (%s) returned non-zero return code (%s)"
+                % (self.name, _status.rc,))
+            if self._tee:
                 logger.error(
-                    "Solver (%s) returned non-zero return code (%s)"
-                    % (self.name, _status.rc,))
-                if self._tee:
-                    logger.error(
-                        "See the solver log above for diagnostic information." )
-                elif hasattr(_status, 'log') and _status.log:
-                    logger.error("Solver log:\n" + str(_status.log))
-                raise pyutilib.common.ApplicationError(
-                    "Solver (%s) did not exit normally" % self.name)
-            solve_completion_time = time.time()
+                    "See the solver log above for diagnostic information." )
+            elif hasattr(_status, 'log') and _status.log:
+                logger.error("Solver log:\n" + str(_status.log))
+            raise pyutilib.common.ApplicationError(
+                "Solver (%s) did not exit normally" % self.name)
+        solve_completion_time = time.time()
 
-            result = self._postsolve()
-            result._smap_id = self._smap_id
-            result._smap = None
-            if _model:
-                if self._load_solutions:
-                    _model.solutions.load_from(
-                        result,
-                        select=self._select_index,
-                        default_variable_value=self._default_variable_value)
-                    result._smap_id = None
-                    result.solution.clear()
-                else:
-                    result._smap = _model.solutions.symbol_map[self._smap_id]
-                    _model.solutions.delete_symbol_map(self._smap_id)
-            postsolve_completion_time = time.time()
+        result = self._postsolve()
+        result._smap_id = self._smap_id
+        result._smap = None
+        if _model:
+            if self._load_solutions:
+                _model.solutions.load_from(result,
+                                           select=self._select_index,
+                                           default_variable_value=self._default_variable_value)
+                result._smap_id = None
+                result.solution.clear()
+            else:
+                result._smap = _model.solutions.symbol_map[self._smap_id]
+                _model.solutions.delete_symbol_map(self._smap_id)
+        postsolve_completion_time = time.time()
 
-            if self._report_timing:
-                print("Presolve time=%0.2f seconds"
-                      % (presolve_completion_time - initial_time))
-                print("Solve time=%0.2f seconds"
-                      % (solve_completion_time - presolve_completion_time))
-                print("Postsolve time=%0.2f seconds"
-                      % (postsolve_completion_time - solve_completion_time))
-
-        finally:
-            #
-            # Reset the options dict (remove any ephemeral solver options
-            # passed into this method)
-            #
-            for key in options_to_reset:
-                self.options[key] = options_to_reset[key]
-            for key in options_to_delete:
-                if key in self.options:
-                    del self.options[key]
+        if self._report_timing:
+            print("Presolve time=%0.2f seconds"
+                  % (presolve_completion_time - initial_time))
+            print("Solve time=%0.2f seconds"
+                  % (solve_completion_time - presolve_completion_time))
+            print("Postsolve time=%0.2f seconds"
+                  % (postsolve_completion_time - solve_completion_time))
 
         return result
 

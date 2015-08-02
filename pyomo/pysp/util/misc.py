@@ -12,7 +12,6 @@ except ImportError:
     pstats_available=False
 
 from pyutilib.misc import PauseGC
-from pyutilib.misc.config import ConfigBlock
 from pyutilib.services import TempfileManager
 import pyutilib.common
 from pyomo.opt.base import ConverterError
@@ -23,8 +22,9 @@ from pyomo.opt.base import ConverterError
 # traceback and profile handling that should not need
 # to be copy-pasted everywhere
 #
-def launch_command(command,
-                   options,
+def launch_command(command_string,
+                   global_context, # (e.g., globals())
+                   local_context,  # (e.g., locals())
                    error_label="",
                    disable_gc=False,
                    profile_count=0,
@@ -48,9 +48,9 @@ def launch_command(command,
             # Call the main PH routine with profiling.
             #
             tfile = TempfileManager.create_tempfile(suffix=".profile")
-            tmp = profile.runctx('command(options)',
-                                 globals(),
-                                 locals(),
+            tmp = profile.runctx(command_string,
+                                 global_context,
+                                 local_context,
                                  tfile)
             p = pstats.Stats(tfile).strip_dirs()
             p.sort_stats('time', 'cumulative')
@@ -73,11 +73,15 @@ def launch_command(command,
             # Call the main PH routine without profiling.
             #
             if traceback:
-                rc = command(options)
+                rc = eval(command_string,
+                          global_context,
+                          local_context)
             else:
                 try:
                     try:
-                        rc = command(options)
+                        rc = eval(command_string,
+                                  global_context,
+                                  local_context)
                     except ValueError:
                         sys.stderr.write(error_label+"VALUE ERROR:\n")
                         sys.stderr.write(str(sys.exc_info()[1])+"\n")
@@ -124,23 +128,5 @@ def launch_command(command,
                         "source of the exception, use the "
                         "--traceback option\n")
                     rc = 1
-
-    #
-    # TODO: Once we incorporate options registration into
-    #       all of the PySP commands we will assume the
-    #       options object is always a ConfigBlock
-    #
-    if isinstance(options, ConfigBlock):
-        ignored_options = dict((_c._name, _c.value(False))
-                              for _c in options.unused_user_values())
-        if len(ignored_options):
-            print("")
-            print("*** WARNING: The following options were "
-                  "set but never checked by this command:")
-            for name in ignored_options:
-                print(" - %s: %s" % (name, ignored_options[name]))
-            print("*** If you believe this is a bug, please report it "
-                  "to the PySP developers.")
-            print("")
 
     return rc

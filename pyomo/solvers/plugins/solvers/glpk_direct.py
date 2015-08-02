@@ -220,7 +220,7 @@ class GLPKDirect ( OptSolver ):
 
                 lbound = ubound = -offset
 
-                if constraint.equality:
+                if constraint._equality:
                     var_type = GLP_FX    # Fixed
                     lbound = ubound = constraint.lower() - offset
                 elif constraint.lower is None:

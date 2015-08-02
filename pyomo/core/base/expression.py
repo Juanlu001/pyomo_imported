@@ -11,26 +11,17 @@ __all__ = ['Expression', '_ExpressionData']
 
 import sys
 import logging
-from weakref import ref as weakref_ref
+from six import iteritems
 
-from pyomo.core.base.component import (ComponentData,
-                                       register_component)
-from pyomo.core.base.indexed_component import (IndexedComponent,
-                                               normalize_index)
-from pyomo.core.base.misc import (apply_indexed_rule,
-                                  tabular_writer)
-from pyomo.core.base.numvalue import (NumericValue,
-                                      as_numeric)
+from pyomo.core.base.component import ComponentData, register_component
+from pyomo.core.base.indexed_component import IndexedComponent, normalize_index
+from pyomo.core.base.misc import apply_indexed_rule, tabular_writer
+from pyomo.core.base.numvalue import NumericValue, as_numeric
 import pyomo.core.base.expr
 from pyomo.core.base.util import is_functor
 
-from six import iteritems
-
 logger = logging.getLogger('pyomo.core')
 
-#
-# This class is a pure interface
-#
 
 class _ExpressionData(ComponentData, NumericValue):
     """
@@ -40,54 +31,90 @@ class _ExpressionData(ComponentData, NumericValue):
         owner       The Expression that owns this data.
 
     Public Class Attributes
-        expr       The expression owned by this data.
+        value       The expression owned by this data.
     """
 
-    __slots__ = ()
+    __slots__ = ('_value',)
 
-    def __init__(self, component=None):
-        #
-        # These lines represent in-lining of the
-        # following constructors:
-        #   - ComponentData
-        #   - NumericValue
-        self._component = weakref_ref(component) if (component is not None) \
-                          else None
+    def __init__(self, owner, value):
+        """Constructor"""
+        ComponentData.__init__(self, owner)
+        self.value = value
 
-    #
-    # Interface
-    #
+    def __getstate__(self):
+        state = super(_ExpressionData, self).__getstate__()
+        for i in _ExpressionData.__slots__:
+            state[i] = getattr(self, i)
+        return state
+
+    # Note: None of  the slots on this class need to be edited, so
+    # we don't need to implement a specialized __setstate__ method, and
+    # can quietly rely on the super() class's implementation.
+
+    # We make value a property so we can ensure that the value
+    # assigned to this component is numeric and that all uses of
+    # .value on the NumericValue base class will work
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if value is not None:
+            self._value = as_numeric(value)
+        else:
+            self._value = None
+
+    def set_value(self, value):
+        self.value = value
+
+    @property
+    def _parent_expr(self):
+        return None
+
+    @value.setter
+    def _parent_expr(self, value):
+        pass
+
+    def is_constant(self):
+        # The underlying expression can always be changed
+        # so this should never evaluate as constant
+        return False
+
+    def is_fixed(self):
+        return self._value.is_fixed()
 
     def __call__(self, exception=True):
-        """Compute the value of this expression."""
-        if self.expr is None:
+        """Return the value of this object."""
+        if self._value is None:
             return None
-        return self.expr(exception=exception)
+        return self._value(exception=exception)
 
-    #
-    # Ducktyping _ExpressionBase functionality
-    #
+    #################
+    # Methods which mock _ExpressionBase behavior defined below
+    #################
 
+    # Note: using False here COULD potentially improve performance
+    #       inside expression generation and means we wouldn't need to
+    #       define a (no-op) clone method. However, there are TONS of
+    #       places throughout the code base where is_expression is
+    #       used to check whether one needs to "dive deeper" into the
+    #       _args
     def is_expression(self):
-        """A boolean indicating whether this in an expression."""
         return True
 
     @property
     def _args(self):
-        """A tuple of subexpressions involved in this expressions operation."""
-        return (self.expr,)
+        return (self._value,)
 
     def _arguments(self):
-        """A generator of subexpressions involved in this expressions operation."""
-        yield self.expr
+        yield self._value
 
     def clone(self):
-        """Return a clone of this expression (no-op)."""
         return self
 
     def polynomial_degree(self):
-        """A tuple of subexpressions involved in this expressions operation."""
-        return self.expr.polynomial_degree()
+        return self._value.polynomial_degree()
 
     def _polynomial_degree(self, result):
         return result.pop()
@@ -100,116 +127,16 @@ class _ExpressionData(ComponentData, NumericValue):
         if _verbose:
             ostream.write(str(self))
             ostream.write("{")
-        if self.expr is None:
+        if self._value is None:
             ostream.write("Undefined")
-        else:
-            self.expr.to_string( ostream=ostream, verbose=verbose,
+        else:# self._value.is_expression():
+            self._value.to_string( ostream=ostream, verbose=verbose,
                                    precedence=precedence )
+        #else:
+        #    ostream.write(str(self._value))
         if _verbose:
             ostream.write("}")
 
-    @property
-    def _parent_expr(self):
-        return None
-    @_parent_expr.setter
-    def _parent_expr(self, value):
-        raise NotImplementedError
-
-    #
-    # Abstract Interface
-    #
-
-    @property
-    def expr(self):
-        """Return expression on this expression."""
-        raise NotImplementedError
-
-    def set_value(self, expr):
-        """Set the expression on this expression."""
-        raise NotImplementedError
-
-    def is_constant(self):
-        """A boolean indicating whether this expression is constant."""
-        raise NotImplementedError
-
-    def is_fixed(self):
-        """A boolean indicating whether this expression is fixed."""
-        raise NotImplementedError
-
-class _GeneralExpressionData(_ExpressionData, NumericValue):
-    """
-    An object that defines an expression that is never cloned
-
-    Constructor Arguments
-        owner       The Expression that owns this data.
-
-    Public Class Attributes
-        expr       The expression owned by this data.
-    """
-
-    __slots__ = ('_expr',)
-
-    def __init__(self, expr, component=None):
-        #
-        # These lines represent in-lining of the
-        # following constructors:
-        #   - ExpressionData
-        #   - ComponentData
-        #   - NumericValue
-        self._component = weakref_ref(component) if (component is not None) \
-                          else None
-
-        self._expr = as_numeric(expr) if (expr is not None) else None
-
-    def __getstate__(self):
-        state = super(_GeneralExpressionData, self).__getstate__()
-        for i in _GeneralExpressionData.__slots__:
-            state[i] = getattr(self, i)
-        return state
-
-    # Note: None of the slots on this class need to be edited, so we
-    # don't need to implement a specialized __setstate__ method, and
-    # can quietly rely on the super() class's implementation.
-
-    #
-    # Abstract Interface
-    #
-
-    @property
-    def expr(self):
-        """Return expression on this expression."""
-        return self._expr
-    @expr.setter
-    def expr(self, expr):
-        self.set_value(expr)
-
-    # for backwards compatibility reasons
-    @property
-    def value(self):
-        logger.warn("DEPRECATED: The .value property getter on "
-                    "_GeneralExpressionData is deprecated. Use "
-                    "the .expr property getter instead")
-        return self._expr
-    @value.setter
-    def value(self, expr):
-        logger.warn("DEPRECATED: The .value property setter on "
-                    "_GeneralExpressionData is deprecated. Use "
-                    "the set_value(expr) method instead")
-        self.set_value(expr)
-
-    def set_value(self, expr):
-        """Set the expression on this expression."""
-        self._expr = as_numeric(expr) if (expr is not None) else None
-
-    def is_constant(self):
-        """A boolean indicating whether this expression is constant."""
-        # The underlying expression can always be changed
-        # so this should never evaluate as constant
-        return False
-
-    def is_fixed(self):
-        """A boolean indicating whether this expression is fixed."""
-        return self._expr.is_fixed()
 
 class Expression(IndexedComponent):
     """
@@ -230,25 +157,23 @@ class Expression(IndexedComponent):
         else:
             return IndexedExpression.__new__(IndexedExpression)
 
-    def __init__(self, *args, **kwds):
-        self._init_rule = kwds.pop('rule', None)
-        self._init_expr = kwds.pop('initialize', None)
-        self._init_expr = kwds.pop('expr', self._init_expr)
-        if is_functor(self._init_expr) and \
-           (not isinstance(self._init_expr, NumericValue)):
-            raise TypeError(
-                "A callable type that is not a Pyomo "
-                "expression can not be used to initialize "
-                "an Expression object. Use 'rule' to initalize "
-                "with function types.")
+    def __init__(self, *args, **kwd):
+        self._init_rule = kwd.pop('rule', None)
+        self._init_value = kwd.pop('initialize', None)
+        self._init_value = kwd.pop('expr', self._init_value)
+        if is_functor(self._init_value) and \
+           (not isinstance(self._init_value, NumericValue)):
+            raise TypeError("A callable type that is not a Pyomo "
+                            "expression can not be used to initialize "
+                            "an Expression object. Use 'rule' to initalize "
+                            "with function types.")
         if (self._init_rule is not None) and \
-           (self._init_expr is not None):
-            raise ValueError(
-                "Both a rule and an expression can not be "
-                "used to initialized an Expression object")
+           (self._init_value is not None):
+            raise ValueError("Both a rule and an expression can not be "
+                             "used to initialized an Expression object")
 
-        kwds.setdefault('ctype', Expression)
-        IndexedComponent.__init__(self, *args, **kwds)
+        kwd.setdefault('ctype', Expression)
+        IndexedComponent.__init__(self, *args, **kwd)
 
     def _pprint(self):
         return (
@@ -258,8 +183,9 @@ class Expression(IndexedComponent):
              ],
             self.iteritems(),
             ("Key","Expression"),
-            lambda k,v: \
-               [k, "Undefined" if v.expr is None else v.expr]
+            lambda k,v: [ k,
+                          "Undefined" if v.value is None else v.value
+                          ]
             )
 
     def display(self, prefix="", ostream=None):
@@ -273,13 +199,16 @@ class Expression(IndexedComponent):
         ostream.write("Size="+str(len(self)))
 
         ostream.write("\n")
-        tabular_writer(
-            ostream,
-            prefix+tab,
-            ((k,v) for k,v in iteritems(self._data)),
-            ( "Key","Value" ),
-            lambda k, v: \
-               [k, "Undefined" if v.expr is None else v()])
+        tabular_writer( ostream, prefix+tab,
+                        ((k,v) for k,v in iteritems(self._data)),
+                        ( "Key","Value" ),
+                        lambda k, v: [ k,
+                                       "Undefined" if v.value is None else v(),
+                                       ] )
+
+    # TODO: Not sure what "reset" really means in this context...
+    def reset(self):
+        pass
 
     #
     # A utility to extract all index-value pairs defining this
@@ -288,9 +217,8 @@ class Expression(IndexedComponent):
     # expensive to extract the contents of an expression.
     #
     def extract_values(self):
-        return dict((key, expression_data.expr) \
+        return dict((key, expression_data.value) \
                     for key, expression_data in iteritems(self))
-
     #
     # takes as input a (index, value) dictionary for updating this
     # Expression.  if check=True, then both the index and value are
@@ -298,15 +226,13 @@ class Expression(IndexedComponent):
     #
     def store_values(self, new_values):
 
-        if (self.is_indexed() is False) and \
-           (not None in new_values):
-            raise RuntimeError(
-                "Cannot store value for scalar Expression"
-                "="+self.cname(True)+"; no value with index "
-                "None in input new values map.")
+        if (self.is_indexed() is False) and (not None in new_values):
+            raise RuntimeError("Cannot store value for scalar Expression"
+                               "="+self.cname(True)+"; no value with index "
+                               "None in input new values map.")
 
         for index, new_value in iteritems(new_values):
-            self._data[index].set_value(new_value)
+            self._data[index].value = new_value
 
     def __setitem__(self, ndx, val):
         #
@@ -319,185 +245,119 @@ class Expression(IndexedComponent):
             if _ndx in self._data:
                 exprdata = self._data[_ndx]
             else:
-                raise KeyError(
-                    "Cannot set the value of Expression '%s' with "
-                    "invalid index '%s'"
-                    % (self.cname(True), str(ndx)))
+                msg = "Cannot set the value of Expression '%s' with invalid " \
+                    "index '%s'"
+                raise KeyError(msg % ( self.cname(True), str(ndx) ))
         #
         # Set the value
         #
-        exprdata.set_value(val)
+        exprdata.value = val
+
+    #
+    # This method must be defined on subclasses of
+    # IndexedComponent
+    #
+    def _default(self, idx):
+        """
+        Returns the default component data value
+        """
+        exprdata = self._data[idx] = _ExpressionData(self, None)
+        return exprdata
+
+    def _add_members(self, init_set):
+        """
+        Create expression data for all indices in a set
+        """
+        self._data.update((ndx,_ExpressionData(self,None)) for ndx in init_set)
+
+    def _initialize_members(self, init_set):
+        """
+        Initialize variable data for all indices in a set
+        """
+        if self._init_value is not None:
+            #
+            # Initialize values with a value
+            #
+            if self._init_value.__class__ is dict:
+                for key in init_set:
+                    # Skip indices that are not in the dictionary
+                    if not key in self._init_value:
+                        continue
+                    self._data[key].value = self._init_value[key]
+            else:
+                #
+                # Optimization: only call as_numeric once
+                #
+                val = as_numeric(self._init_value)
+                for key in init_set:
+                    self._data[key]._value = val
+        elif self._init_rule is not None:
+            #
+            # Initialize values with a rule
+            #
+            if self.is_indexed():
+                for key in init_set:
+                    self._data[key].value = \
+                        apply_indexed_rule(self, self._init_rule, self._parent(), key)
+            else:
+                self.value = self._init_rule(self._parent())
 
     def construct(self, data=None):
         """ Apply the rule to construct values in this set """
 
         if __debug__ and logger.isEnabledFor(logging.DEBUG):
-            logger.debug(
-                "Constructing Expression, name=%s, from data=%s"
-                % (self.cname(True), str(data)))
+            logger.debug("Constructing Expression, name=%s, from data=%s"
+                         % ( self.cname(True), str(data) ))
 
         if self._constructed:
             return
         self._constructed = True
-
-        _init_expr = self._init_expr
-        _init_rule = self._init_rule
         #
-        # We no longer need these
-        #
-        self._init_expr = None
-        self._init_rule = None
-
-        #
-        # Construct _GeneralExpressionData objects for all index values
+        # Construct _ExpressionData objects for all index values
         #
         if self.is_indexed():
-            self._data.update(
-                (key, _GeneralExpressionData(None, component=self))
-                for key in self._index)
+            self._add_members(self._index)
         else:
             self._data[None] = self
+        self._initialize_members(self._index)
 
-        #
-        # Initialize members
-        #
-        if _init_expr is not None:
-            #
-            # Initialize values with a value
-            #
-            if _init_expr.__class__ is dict:
-                for key in self._index:
-                    # Skip indices that are not in the dictionary
-                    if not key in _init_expr:
-                        continue
-                    self._data[key].set_value(_init_expr[key])
-            else:
-                for key in self._index:
-                    self._data[key].set_value(_init_expr)
 
-        elif _init_rule is not None:
-            #
-            # Initialize values with a rule
-            #
-            if self.is_indexed():
-                for key in self._index:
-                    self._data[key].set_value(
-                        apply_indexed_rule(self,
-                                           _init_rule,
-                                           self._parent(),
-                                           key))
-            else:
-                self.set_value(_init_rule(self._parent()))
+# Since this class derives from Component and Component.__getstate__
+# just packs up the entire __dict__ into the state dict, there s
+# nothing special that we need to do here.  We will just defer to the
+# super() get/set state.  Since all of our get/set state methods
+# rely on super() to traverse the MRO, this will automatically pick
+# up both the Component and Data base classes.
 
-class SimpleExpression(_GeneralExpressionData, Expression):
+class SimpleExpression(_ExpressionData, Expression):
 
     def __init__(self, *args, **kwds):
-        _GeneralExpressionData.__init__(self, None, component=self)
         Expression.__init__(self, *args, **kwds)
+        _ExpressionData.__init__(self, self, None)
 
-    #
-    # Since this class derives from Component and
-    # Component.__getstate__ just packs up the entire __dict__ into
-    # the state dict, we do not need to define the __getstate__ or
-    # __setstate__ methods.  We just defer to the super() get/set
-    # state.  Since all of our get/set state methods rely on super()
-    # to traverse the MRO, this will automatically pick up both the
-    # Component and Data base classes.
-    #
-
-    #
-    # Override abstract interface methods to first check for
-    # construction
-    #
-
-    @property
-    def expr(self):
-        """Return expression on this expression."""
+    def __call__(self, exception=True):
+        """
+        Compute the value of the expression
+        """
         if self._constructed:
-            return _GeneralExpressionData.expr.fget(self)
-        raise ValueError(
-            "Accessing the expression of expression '%s' "
-            "before the Expression has been constructed (there "
-            "is currently no value to return)."
-            % (self.cname(True)))
-    @expr.setter
-    def expr(self, expr):
-        """Set the expression on this expression."""
-        self.set_value(expr)
+            return _ExpressionData.__call__(self, exception=exception)
+        if exception:
+            raise ValueError("Evaluating the numeric value of expression '%s' "
+                             "before the Expression has been constructed (there "
+                             "is currently no value to return)."
+                             % self.cname(True))
 
-    # for backwards compatibility reasons
-    @property
-    def value(self):
-        logger.warn("DEPRECATED: The .value property getter on "
-                    "SimpleExpression is deprecated. Use "
-                    "the .expr property getter instead")
-        return self.expr
-    @value.setter
-    def value(self, expr):
-        logger.warn("DEPRECATED: The .value property setter on "
-                    "SimpleExpression is deprecated. Use the "
-                    "set_value(expr) method instead")
-        self.set_value(expr)
-
-    def set_value(self, expr):
-        """Set the expression on this expression."""
-        if self._constructed:
-            return _GeneralExpressionData.set_value(self, expr)
-        raise ValueError(
-            "Setting the expression of expression '%s' "
-            "before the Expression has been constructed (there "
-            "is currently no object to set)."
-            % (self.cname(True)))
-
-    def is_constant(self):
-        """A boolean indicating whether this expression is constant."""
-        if self._constructed:
-            return _GeneralExpressionData.is_constant(self)
-        raise ValueError(
-            "Accessing the is_constant flag of expression '%s' "
-            "before the Expression has been constructed (there "
-            "is currently no value to return)."
-            % (self.cname(True)))
-
-    def is_fixed(self):
-        """A boolean indicating whether this expression is fixed."""
-        if self._constructed:
-            return _GeneralExpressionData.is_fixed(self)
-        raise ValueError(
-            "Accessing the is_fixed flag of expression '%s' "
-            "before the Expression has been constructed (there "
-            "is currently no value to return)."
-            % (self.cname(True)))
-
-    #
-    # Leaving this method for backward compatibility reasons.
-    # (probably should be removed)
-    #
-    def add(self, index, expr):
-        """Add an expression with a given index."""
-        if index is not None:
-            raise ValueError(
-                "SimpleExpression object '%s' does not accept "
-                "index values other than None. Invalid value: %s"
-                % (self.cname(True), index))
-        self.set_value(expr)
-        return self
 
 class IndexedExpression(Expression):
 
-    #
-    # Leaving this method for backward compatibility reasons
-    # Note: It allows adding members outside of self._index.
-    #       This has always been the case. Not sure there is
-    #       any reason to maintain a reference to a separate
-    #       index set if we allow this.
-    #
-    def add(self, index, expr):
-        """Add an expression with a given index."""
-        cdata = _GeneralExpressionData(expr, component=self)
-        self._data[index] = cdata
-        return cdata
+    def __call__(self, exception=True):
+        """
+        Compute the value of the expression
+        """
+        if exception:
+            msg = 'Cannot compute the value of an array of expressions'
+            raise TypeError(msg)
 
-register_component(
-    Expression,
-    "Named expressions that can be used in other expressions.")
+
+register_component(Expression, "Named expressions that can be used in other expressions.")
+

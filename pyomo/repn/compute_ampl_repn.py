@@ -14,30 +14,24 @@ import pyomo.util
 from pyomo.core.base import (Constraint,
                              Objective,
                              ComponentMap)
-from pyomo.repn.linear import MatrixConstraint
-from pyomo.repn.canonical_repn import LinearCanonicalRepn
 from pyomo.repn import generate_ampl_repn
 
-from six import iteritems
 
-def preprocess_block_objectives(block, idMap=None, descend_into=False):
+def preprocess_block_objectives(block):
 
     # Get/Create the ComponentMap for the repn
     if not hasattr(block,'_ampl_repn'):
         block._ampl_repn = ComponentMap()
     block_ampl_repn = block._ampl_repn
 
-    for objective_data in block.component_data_objects(Objective,
-                                                       active=True,
-                                                       descend_into=descend_into):
+    for objective_data in block.component_data_objects(Objective, active=True, descend_into=False):
 
         if objective_data.expr is None:
             raise ValueError("No expression has been defined for objective %s"
                              % (objective_data.cname(True)))
 
         try:
-            ampl_repn = generate_ampl_repn(objective_data.expr,
-                                           idMap=idMap)
+            ampl_repn = generate_ampl_repn(objective_data.expr)
         except Exception:
             err = sys.exc_info()[1]
             logging.getLogger('pyomo.core').error\
@@ -47,91 +41,28 @@ def preprocess_block_objectives(block, idMap=None, descend_into=False):
 
         block_ampl_repn[objective_data] = ampl_repn
 
-def preprocess_block_constraints(block, idMap=None, descend_into=False):
+def preprocess_block_constraints(block):
 
     # Get/Create the ComponentMap for the repn
     if not hasattr(block,'_ampl_repn'):
         block._ampl_repn = ComponentMap()
     block_ampl_repn = block._ampl_repn
 
-    for constraint in block.component_objects(Constraint,
-                                              active=True,
-                                              descend_into=descend_into):
-
-        preprocess_constraint(block,
-                              constraint,
-                              idMap=idMap,
-                              block_ampl_repn=block_ampl_repn)
-
-def preprocess_constraint(block,
-                          constraint,
-                          idMap=None,
-                          block_ampl_repn=None):
-
-    if isinstance(constraint, MatrixConstraint):
-        return
-
-    # Get/Create the ComponentMap for the repn
-    if not hasattr(block,'_ampl_repn'):
-        block._ampl_repn = ComponentMap()
-    block_ampl_repn = block._ampl_repn
-
-    for index, constraint_data in iteritems(constraint):
-
-        if not constraint_data.active:
-            continue
-
-        if isinstance(constraint_data, LinearCanonicalRepn):
-            continue
+    for constraint_data in block.component_data_objects(Constraint, active=True, descend_into=False):
 
         if constraint_data.body is None:
-            raise ValueError(
-                "No expression has been defined for the body "
-                "of constraint %s" % (constraint_data.cname(True)))
+            raise ValueError("No expression has been defined for the body of constraint %s" % (constraint_data.cname(True)))
 
         try:
-            ampl_repn = generate_ampl_repn(constraint_data.body,
-                                           idMap=idMap)
+            ampl_repn = generate_ampl_repn(constraint_data.body)
         except Exception:
             err = sys.exc_info()[1]
-            logging.getLogger('pyomo.core').error(
-                "exception generating a ampl representation for "
-                "constraint %s: %s"
-                % (constraint_data.cname(True), str(err)))
+            logging.getLogger('pyomo.core').error\
+                ( "exception generating a ampl representation for constraint %s: %s" \
+                      % (constraint_data.cname(True), str(err)) )
             raise
 
         block_ampl_repn[constraint_data] = ampl_repn
-
-def preprocess_constraint_data(block,
-                               constraint_data,
-                               idMap=None,
-                               block_ampl_repn=None):
-
-    if isinstance(constraint_data, LinearCanonicalRepn):
-        return
-
-    # Get/Create the ComponentMap for the repn
-    if not hasattr(block,'_ampl_repn'):
-        block._ampl_repn = ComponentMap()
-    block_ampl_repn = block._ampl_repn
-
-    if constraint_data.body is None:
-        raise ValueError(
-            "No expression has been defined for the body "
-            "of constraint %s" % (constraint_data.cname(True)))
-
-    try:
-        ampl_repn = generate_ampl_repn(constraint_data.body,
-                                       idMap=idMap)
-    except Exception:
-        err = sys.exc_info()[1]
-        logging.getLogger('pyomo.core').error(
-            "exception generating a ampl representation for "
-            "constraint %s: %s"
-            % (constraint_data.cname(True), str(err)))
-        raise
-
-    block_ampl_repn[constraint_data] = ampl_repn
 
 @pyomo.util.pyomo_api(namespace='pyomo.repn')
 def compute_ampl_repn(data, model=None):
@@ -149,7 +80,7 @@ def compute_ampl_repn(data, model=None):
     Required:
         model:      A concrete model instance.
     """
-    idMap = {}
     for block in model.block_data_objects(active=True):
-        preprocess_block_constraints(block, idMap=idMap)
-        preprocess_block_objectives(block, idMap=idMap)
+        preprocess_block_constraints(block)
+        preprocess_block_objectives(block)
+

@@ -57,7 +57,8 @@ class _VarData(ComponentData, NumericValue):
     these attributes in certain cases.
     """
 
-    __slots__ = ('value', 'initial', '_lb', '_ub', 'fixed', 'stale')
+    __pickle_slots__ = ('value','initial','_lb','_ub','fixed','stale')
+    __slots__ = __pickle_slots__ + ( '__weakref__', )
 
     def __init__(self, component):
         """
@@ -92,7 +93,7 @@ class _VarData(ComponentData, NumericValue):
         This method must be defined because this class uses slots.
         """
         result = super(_VarData, self).__getstate__()
-        for i in _VarData.__slots__:
+        for i in _VarData.__pickle_slots__:
             result[i] = getattr(self, i)
         return result
 
@@ -520,14 +521,11 @@ class Var(IndexedComponent):
                 # Some Var components don't have a name yet, so just use the type
                 name = type(self)
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(
-                    "Constructing Variable, name=%s, from data=%s"
-                    % (name, str(data)))
-
+                logger.debug("Constructing Variable, name=%s, from data=%s", name, str(data))
+        #
         if self._constructed:
             return
         self._constructed=True
-
         #
         # Construct self._VarData objects for all index values
         #
